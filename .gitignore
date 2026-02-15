@@ -19,6 +19,12 @@ airflow-webserver.pid
 # Docker
 *.log
 
+# dbt
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+dbt_project/package-lock.yml
+
 # IDE
 .vscode/
 .idea/

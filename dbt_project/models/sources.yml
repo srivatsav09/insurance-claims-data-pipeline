@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Raw insurance data loaded from CSV files
+    tables:
+      - name: claims
+        description: Raw insurance claims data
+        columns:
+          - name: claim_id
+            tests:
+              - unique
+              - not_null
+      - name: policyholders
+        description: Raw policyholder data
+        columns:
+          - name: policy_id
+            tests:
+              - unique
+              - not_null
+      - name: vehicles
+        description: Raw vehicle data
+        columns:
+          - name: vehicle_id
+            tests:
+              - unique
+              - not_null

@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: stg_claims
+    description: Cleaned and standardized claims data
+    columns:
+      - name: claim_id
+        description: Unique claim identifier
+        tests:
+          - unique
+          - not_null
+      - name: claim_type
+        tests:
+          - accepted_values:
+              values: ['Collision', 'Theft', 'Liability', 'Comprehensive']
+      - name: claim_status
+        tests:
+          - accepted_values:
+              values: ['Approved', 'Denied', 'Pending', 'Under Review']
+      - name: claim_amount
+        tests:
+          - not_null
+
+  - name: stg_policyholders
+    description: Cleaned policyholder data with derived fields
+    columns:
+      - name: policy_id
+        description: Unique policy identifier
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_vehicles
+    description: Cleaned vehicle data with age bucketing
+    columns:
+      - name: vehicle_id
+        description: Unique vehicle identifier
+        tests:
+          - unique
+          - not_null
+      - name: fuel_type
+        tests:
+          - accepted_values:
+              values: ['Gasoline', 'Diesel', 'Hybrid', 'Electric']

@@ -1,6 +1,6 @@
 """
-Insurance Claims ETL DAG - Phase 1
-Tasks: generate synthetic data → validate quality → load into raw schema
+Insurance Claims ETL DAG
+Tasks: generate → validate → load_raw → dbt_run → dbt_test
 """
 
 import os
@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 
 # Add project root to path so we can import our modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -17,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 logger = logging.getLogger(__name__)
 
 DATA_DIR = "/opt/airflow/data/raw"
+DBT_PROJECT_DIR = "/opt/airflow/dbt_project"
 
 default_args = {
     "owner": "data-engineering",
@@ -73,7 +75,7 @@ with DAG(
     schedule_interval="@daily",
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["insurance", "etl", "phase1"],
+    tags=["insurance", "etl", "dbt"],
 ) as dag:
 
     generate = PythonOperator(
@@ -91,4 +93,19 @@ with DAG(
         python_callable=task_load_raw,
     )
 
-    generate >> validate >> load_raw
+    dbt_deps = BashOperator(
+        task_id="dbt_deps",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt deps --profiles-dir {DBT_PROJECT_DIR} --project-dir {DBT_PROJECT_DIR}",
+    )
+
+    dbt_run = BashOperator(
+        task_id="dbt_run",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt run --profiles-dir {DBT_PROJECT_DIR} --project-dir {DBT_PROJECT_DIR}",
+    )
+
+    dbt_test = BashOperator(
+        task_id="dbt_test",
+        bash_command=f"cd {DBT_PROJECT_DIR} && dbt test --profiles-dir {DBT_PROJECT_DIR} --project-dir {DBT_PROJECT_DIR}",
+    )
+
+    generate >> validate >> load_raw >> dbt_deps >> dbt_run >> dbt_test

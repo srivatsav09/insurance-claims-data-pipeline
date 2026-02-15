@@ -1,0 +1,70 @@
+version: 2
+
+models:
+  - name: fact_claims
+    description: Fact table for insurance claims with surrogate keys to dimensions
+    columns:
+      - name: claim_key
+        description: Surrogate key for the claim
+        tests:
+          - unique
+          - not_null
+      - name: claim_id
+        tests:
+          - unique
+          - not_null
+      - name: policyholder_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_policyholder')
+              field: policyholder_key
+      - name: vehicle_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_vehicle')
+              field: vehicle_key
+      - name: claim_amount
+        tests:
+          - not_null
+
+  - name: dim_policyholder
+    description: Policyholder dimension with demographics and policy info
+    columns:
+      - name: policyholder_key
+        tests:
+          - unique
+          - not_null
+      - name: policy_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_vehicle
+    description: Vehicle dimension with make, model, age bucketing
+    columns:
+      - name: vehicle_key
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_region
+    description: Region dimension mapping states to regions
+    columns:
+      - name: region_key
+        tests:
+          - unique
+          - not_null
+      - name: state
+        tests:
+          - unique
+          - not_null
+
+  - name: agg_monthly_claims
+    description: Pre-aggregated monthly claims KPIs
+    columns:
+      - name: month
+        tests:
+          - unique
+          - not_null

@@ -22,6 +22,7 @@ x-airflow-common: &airflow-common
     - ./data:/opt/airflow/data
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ./dbt_project:/opt/airflow/dbt_project
   depends_on:
     airflow-db:
       condition: service_healthy
