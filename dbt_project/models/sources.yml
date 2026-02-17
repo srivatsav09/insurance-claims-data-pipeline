@@ -7,6 +7,10 @@ sources:
     tables:
       - name: claims
         description: Raw insurance claims data
+        loaded_at_field: claim_date
+        freshness:
+          warn_after: {count: 365, period: day}
+          error_after: {count: 1095, period: day}
         columns:
           - name: claim_id
             tests:

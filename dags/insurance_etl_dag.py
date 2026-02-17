@@ -1,6 +1,7 @@
 """
 Insurance Claims ETL DAG
-Tasks: generate → validate → load_raw → dbt_run → dbt_test
+Tasks: generate → validate → load_raw → dbt_deps → dbt_run → dbt_test
+       → post_load_validation → log_pipeline_metrics
 """
 
 import os
@@ -68,6 +69,38 @@ def task_load_raw(**kwargs):
     logger.info(f"Load results: {results}")
 
 
+def task_post_load_validation(**kwargs):
+    """Run post-load warehouse validation checks."""
+    from include.quality.post_load_checks import run_all_post_load_checks
+
+    results = run_all_post_load_checks()
+
+    kwargs["ti"].xcom_push(key="validation_summary", value=results)
+    logger.info(f"Post-load validation: {results['status']}")
+
+
+def task_log_pipeline_metrics(**kwargs):
+    """Log pipeline metrics for this run to the observability table."""
+    from include.observability.metrics import log_row_counts, log_metric
+
+    run_id = kwargs["run_id"]
+    dag_id = kwargs["dag"].dag_id
+
+    # Log row counts across all layers
+    row_counts = log_row_counts(run_id, dag_id)
+
+    # Log overall pipeline success
+    log_metric(
+        run_id=run_id,
+        dag_id=dag_id,
+        task_id="pipeline_summary",
+        status="success",
+        metadata={"row_counts": {k: v for k, v in row_counts.items() if isinstance(v, int)}},
+    )
+
+    logger.info(f"Pipeline metrics logged for run: {run_id}")
+
+
 with DAG(
     dag_id="insurance_claims_etl",
     default_args=default_args,
@@ -75,7 +108,7 @@ with DAG(
     schedule_interval="@daily",
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["insurance", "etl", "dbt"],
+    tags=["insurance", "etl", "dbt", "observability"],
 ) as dag:
 
     generate = PythonOperator(
@@ -108,4 +141,14 @@ with DAG(
         bash_command=f"cd {DBT_PROJECT_DIR} && dbt test --profiles-dir {DBT_PROJECT_DIR} --project-dir {DBT_PROJECT_DIR}",
     )
 
-    generate >> validate >> load_raw >> dbt_deps >> dbt_run >> dbt_test
+    post_load_validation = PythonOperator(
+        task_id="post_load_validation",
+        python_callable=task_post_load_validation,
+    )
+
+    log_metrics = PythonOperator(
+        task_id="log_pipeline_metrics",
+        python_callable=task_log_pipeline_metrics,
+    )
+
+    generate >> validate >> load_raw >> dbt_deps >> dbt_run >> dbt_test >> post_load_validation >> log_metrics
