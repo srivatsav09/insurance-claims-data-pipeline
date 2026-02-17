@@ -29,6 +29,9 @@ dbt_project/package-lock.yml
 .vscode/
 .idea/
 
+# Personal notes
+WALKTHROUGH.md
+
 # OS
 .DS_Store
 Thumbs.db
